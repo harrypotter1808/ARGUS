@@ -127,7 +127,7 @@ def match_face():
     min_distance = float('inf')
     
     # Highly selective match threshold (reduced from 0.6 to 0.48 to avoid false positives)
-    match_threshold = 0.48
+    match_threshold = 0.55
     
     for row in rows:
         db_embedding = json.loads(row['embedding'])

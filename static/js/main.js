@@ -317,7 +317,8 @@ async function objectDetectionLoop() {
     }
     
     try {
-        const objects = await cocoSsdModel.detect(video);
+        // Run with maximum 15 boxes and a lower scoreThreshold of 0.35 to catch blurry objects
+        const objects = await cocoSsdModel.detect(video, 15, 0.35);
         latestObjects = objects;
         
         // Update sidebar list items and logs
@@ -365,12 +366,22 @@ function drawCachedFaces() {
         const { x, y, width, height } = face.detection.box;
         const cyanColor = '#00f2fe';
         
-        // Find if this face is registered
+        // Find if this face matches any in our local cache using Euclidean distance
         let displayName = "Scanning face...";
-        const faceId = getFaceIdHash(face.descriptor);
+        let matchedItem = null;
+        for (const key in matchedFaces) {
+            const item = matchedFaces[key];
+            if (item.descriptor) {
+                const dist = faceapi.euclideanDistance(face.descriptor, item.descriptor);
+                if (dist < 0.55) {
+                    matchedItem = item;
+                    break;
+                }
+            }
+        }
         
-        if (matchedFaces[faceId]) {
-            displayName = matchedFaces[faceId].user.name;
+        if (matchedItem) {
+            displayName = matchedItem.user.name;
         }
         
         // Draw face landmark dots and lines (Futuristic wireframe overlay)
@@ -447,8 +458,23 @@ async function processFaceMatching(faces) {
     const face = faces[0];
     const faceId = getFaceIdHash(face.descriptor);
     
-    if (matchedFaces[faceId]) {
-        updateProfileUI(matchedFaces[faceId].user);
+    // Check if this face matches any in our local cache using Euclidean distance
+    let cachedItem = null;
+    for (const key in matchedFaces) {
+        const item = matchedFaces[key];
+        if (item.descriptor) {
+            const dist = faceapi.euclideanDistance(face.descriptor, item.descriptor);
+            if (dist < 0.55) {
+                cachedItem = item;
+                break;
+            }
+        }
+    }
+    
+    if (cachedItem) {
+        // Cache under current faceId hash to speed up future direct lookups
+        matchedFaces[faceId] = cachedItem;
+        updateProfileUI(cachedItem.user);
         lastMatchTime = now;
         return;
     }
@@ -458,7 +484,7 @@ async function processFaceMatching(faces) {
         // Check if this face was ignored recently
         const isIgnored = ignoredFaces.some(ign => {
             const dist = faceapi.euclideanDistance(ign.descriptor, face.descriptor);
-            return dist < 0.48 && (now - ign.time < IGNORE_COOLDOWN_MS);
+            return dist < 0.55 && (now - ign.time < IGNORE_COOLDOWN_MS);
         });
         
         if (!isIgnored) {
@@ -487,6 +513,7 @@ async function performFaceMatching(face) {
             const faceId = getFaceIdHash(face.descriptor);
             matchedFaces[faceId] = {
                 user: result.user,
+                descriptor: face.descriptor,
                 timestamp: Date.now()
             };
             addLog(`Face matched: ${result.user.name} (distance: ${result.distance.toFixed(3)})`, "success");
@@ -597,6 +624,7 @@ registerForm.addEventListener('submit', async (e) => {
             const faceId = getFaceIdHash(currentUnrecognizedDescriptor);
             matchedFaces[faceId] = {
                 user: result.user,
+                descriptor: currentUnrecognizedDescriptor,
                 timestamp: Date.now()
             };
             
