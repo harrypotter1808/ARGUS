@@ -19,8 +19,24 @@
         <header class="app-header">
             <div class="logo">
                 <i class="fa-solid fa-brain-circuit pulse-icon"></i>
-                <h1>AURA<span>Perception System</span></h1>
+                <h1>ARGUS<span>Perception System</span></h1>
             </div>
+            
+            <!-- Perception Mode Selector -->
+            <div class="mode-selector-container">
+                <div class="mode-selector">
+                    <button type="button" class="mode-btn active" data-mode="dual" id="btn-mode-dual">
+                        <i class="fa-solid fa-bolt"></i> Dual Mode
+                    </button>
+                    <button type="button" class="mode-btn" data-mode="face" id="btn-mode-face">
+                        <i class="fa-solid fa-user-astronaut"></i> Face ID
+                    </button>
+                    <button type="button" class="mode-btn" data-mode="object" id="btn-mode-object">
+                        <i class="fa-solid fa-cube"></i> Object Scan
+                    </button>
+                </div>
+            </div>
+            
             <div class="system-status" id="system-status">
                 <span class="status-indicator yellow"></span>
                 <span class="status-text">Initializing AI Models...</span>
@@ -198,6 +214,6 @@
     <script src="{{ url_for('static', filename='js/face-api.js') }}"></script>
     <script src="{{ url_for('static', filename='js/coco-ssd.js') }}"></script>
     <!-- App Logic -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}" type="module"></script>
 </body>
 </html>
