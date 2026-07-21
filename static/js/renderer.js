@@ -36,9 +36,11 @@ export function drawTargetCorners(ctx, x, y, width, height, color) {
     ctx.shadowBlur = 0;
 }
 
-export function drawFuturisticLandmarks(ctx, landmarks) {
+export function drawFuturisticLandmarks(ctx, landmarks, color = '#00f2fe') {
     const pts = landmarks.positions;
-    ctx.strokeStyle = 'rgba(0, 242, 254, 0.25)';
+    // Set wireframe opacity color based on matched state
+    const rgbaColor = color === '#00f2fe' ? 'rgba(0, 242, 254, 0.25)' : 'rgba(255, 140, 0, 0.25)';
+    ctx.strokeStyle = rgbaColor;
     ctx.lineWidth = 1.2;
     
     function drawPath(start, end, close = false) {
@@ -61,9 +63,9 @@ export function drawFuturisticLandmarks(ctx, landmarks) {
     drawPath(48, 59, true);  // Outer lips
     drawPath(60, 67, true);  // Inner lips
     
-    ctx.fillStyle = 'rgba(0, 242, 254, 0.75)';
+    ctx.fillStyle = color === '#00f2fe' ? 'rgba(0, 242, 254, 0.75)' : 'rgba(255, 140, 0, 0.75)';
     ctx.shadowBlur = 3;
-    ctx.shadowColor = '#00f2fe';
+    ctx.shadowColor = color;
     pts.forEach(pt => {
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, 2, 0, 2 * Math.PI);
@@ -120,9 +122,8 @@ export function drawCachedObjects(ctx, objects) {
 export function drawCachedFaces(ctx, faces, matchedFaces) {
     faces.forEach(face => {
         const { x, y, width, height } = face.detection.box;
-        const cyanColor = '#00f2fe';
         
-        let displayName = "Scanning face...";
+        let displayName = "Scanning Biometrics...";
         let matchedItem = null;
         for (const key in matchedFaces) {
             const item = matchedFaces[key];
@@ -135,25 +136,30 @@ export function drawCachedFaces(ctx, faces, matchedFaces) {
             }
         }
         
-        if (matchedItem) {
+        const isMatched = !!matchedItem;
+        if (isMatched) {
             displayName = matchedItem.user.name;
         }
         
-        drawFuturisticLandmarks(ctx, face.landmarks);
+        // Color coding: Cyan for recognized, Amber for scanning/unidentified
+        const primaryColor = isMatched ? '#00f2fe' : '#ff8c00';
+        const borderAlphaColor = isMatched ? 'rgba(0, 242, 254, 0.12)' : 'rgba(255, 140, 0, 0.15)';
+        const textFillColor = isMatched ? '#040814' : '#ffffff';
         
-        ctx.strokeStyle = 'rgba(0, 242, 254, 0.12)';
+        drawFuturisticLandmarks(ctx, face.landmarks, primaryColor);
+        
+        ctx.strokeStyle = borderAlphaColor;
         ctx.lineWidth = 1;
         ctx.strokeRect(x, y, width, height);
         
-        drawTargetCorners(ctx, x, y, width, height, cyanColor);
+        drawTargetCorners(ctx, x, y, width, height, primaryColor);
         
-        ctx.fillStyle = cyanColor;
-        const label = displayName;
-        const textWidth = ctx.measureText(label).width;
+        ctx.fillStyle = primaryColor;
+        const textWidth = ctx.measureText(displayName).width;
         ctx.fillRect(x, y - 25 > 0 ? y - 25 : y, textWidth + 16, 25);
         
-        ctx.fillStyle = '#040814';
+        ctx.fillStyle = textFillColor;
         ctx.font = "bold 13px 'Outfit', sans-serif";
-        ctx.fillText(label, x + 8, y - 25 > 0 ? y - 8 : y + 17);
+        ctx.fillText(displayName, x + 8, y - 25 > 0 ? y - 8 : y + 17);
     });
 }

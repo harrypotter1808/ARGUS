@@ -47,13 +47,15 @@ const cropCtx = faceCropCanvas.getContext('2d');
 const btnCancelRegister = document.getElementById('btn-cancel-register');
 const btnCloseModal = document.getElementById('close-modal');
 
-// Mode Buttons
+// Controls
 const modeButtons = document.querySelectorAll('.mode-btn');
+const btnToggleVoice = document.getElementById('toggle-voice');
 
 // State
 let isSystemReady = false;
 let isRegistering = false;
 let activeMode = 'dual'; // 'dual', 'face', 'object'
+let isVoiceEnabled = true; // default voice synthesizer enabled
 
 let latestFaces = [];
 let latestObjects = [];
@@ -100,6 +102,27 @@ function showToast(message, type = 'success') {
     }, 4000);
 }
 
+// Robotic Voice Synthesizer
+function speakText(text) {
+    if (!isVoiceEnabled) return;
+    
+    // Stop any ongoing speech immediately to keep responses snappy
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.05;  // Slightly accelerated pace
+    utterance.pitch = 0.90; // Slightly deeper, robotic timber
+    
+    // Attempt to locate a natural/robotic English voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const desiredVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Google'));
+    if (desiredVoice) {
+        utterance.voice = desiredVoice;
+    }
+    
+    window.speechSynthesis.speak(utterance);
+}
+
 // Start perception hub
 async function initPerceptionSystem() {
     try {
@@ -122,6 +145,9 @@ async function initPerceptionSystem() {
         
         isSystemReady = true;
         addLog(`System initialized. Mode: ${activeMode.toUpperCase()}`, "success");
+        
+        // Announce boot completion
+        speakText("ARGUS perception hub active.");
         
         // Start loops
         requestAnimationFrame(renderLoop);
@@ -174,7 +200,6 @@ function renderLoop() {
 // Background Face Detection Loop
 async function faceDetectionLoop() {
     if (!isSystemReady || isRegistering || activeMode === 'object') {
-        // If mode is 'object', we pause face detection to save CPU resources
         latestFaces = [];
         setTimeout(faceDetectionLoop, 300);
         return;
@@ -195,7 +220,8 @@ async function faceDetectionLoop() {
             clearProfileUI,
             openRegisterModal,
             addLog,
-            showToast
+            showToast,
+            speakText // Pass voice synthesizer
         );
     } catch (err) {
         console.error("Face detection loop error:", err);
@@ -207,7 +233,6 @@ async function faceDetectionLoop() {
 // Background Object Detection Loop
 async function objectDetectionLoop() {
     if (!isSystemReady || activeMode === 'face') {
-        // If mode is 'face', we pause object detection to save CPU resources
         latestObjects = [];
         setTimeout(objectDetectionLoop, 400);
         return;
@@ -215,6 +240,16 @@ async function objectDetectionLoop() {
     
     try {
         const objects = await detectObjects(video);
+        
+        // Detect newly appeared objects to announce verbally
+        const filtered = objects.filter(obj => obj.class !== 'person');
+        filtered.forEach(obj => {
+            const now = performance.now();
+            if (!activeObjects[obj.class] || (now - activeObjects[obj.class].lastSeen > 5000)) {
+                speakText(`Object sighted: ${obj.class}`);
+            }
+        });
+        
         latestObjects = objects;
         
         // Update sidebar UI and logs
@@ -225,6 +260,22 @@ async function objectDetectionLoop() {
     
     setTimeout(objectDetectionLoop, 250);
 }
+
+// Voice Toggle Handler
+btnToggleVoice.addEventListener('click', () => {
+    isVoiceEnabled = !isVoiceEnabled;
+    if (isVoiceEnabled) {
+        btnToggleVoice.classList.remove('muted');
+        btnToggleVoice.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+        addLog("Voice feedback module active.", "system");
+        speakText("Voice response enabled");
+    } else {
+        btnToggleVoice.classList.add('muted');
+        btnToggleVoice.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+        window.speechSynthesis.cancel();
+        addLog("Voice feedback module muted.", "system");
+    }
+});
 
 // Mode Selection Handler
 modeButtons.forEach(btn => {
@@ -240,15 +291,14 @@ modeButtons.forEach(btn => {
         activeMode = newMode;
         addLog(`System mode changed to: ${activeMode.toUpperCase()}`, "info");
         showToast(`Mode: ${activeMode.toUpperCase()}`, "info");
+        speakText(`Switching to ${newMode} mode.`);
         
         // Cleanup UI displays
         if (activeMode === 'face') {
-            // Clear objects list
             latestObjects = [];
             objectsPlaceholder.classList.remove('hidden');
             detectedObjectsList.innerHTML = '';
         } else if (activeMode === 'object') {
-            // Clear profile display
             latestFaces = [];
             clearProfileUI();
         }
@@ -337,6 +387,7 @@ registerForm.addEventListener('submit', async (e) => {
             
             addLog(`Biometric database updated for: ${name}`, "success");
             showToast(`Profile created for ${name}!`, "success");
+            speakText(`Profile registered. Welcome, ${name}`);
             updateProfileUI(result.user);
             closeRegisterModal(false);
         } else {
@@ -411,5 +462,10 @@ window.addEventListener('resize', () => {
         resizeCanvas(video, canvas);
     }
 });
+
+// Ensure voices are pre-loaded in browser cache (Safari/Chrome support)
+if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = () => {};
+}
 
 window.addEventListener('load', initPerceptionSystem);

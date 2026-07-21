@@ -987,3 +987,17 @@ h1, h2, h3, h4 {
     color: #ffffff;
     box-shadow: 0 4px 12px rgba(255, 0, 127, 0.25);
 }
+
+/* Voice Mute Toggle button custom styles */
+#toggle-voice.muted {
+    color: rgba(255, 255, 255, 0.25) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    background: rgba(0, 0, 0, 0.2) !important;
+    box-shadow: none !important;
+}
+
+#toggle-voice:not(.muted) {
+    color: var(--cyan) !important;
+    border-color: rgba(0, 242, 254, 0.2) !important;
+    box-shadow: 0 0 8px rgba(0, 242, 254, 0.15) !important;
+}
