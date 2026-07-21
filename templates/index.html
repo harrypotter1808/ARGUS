@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA - Real-Time Face & Object Recognition</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fa-solid fa-brain-circuit pulse-icon"></i>
+                <h1>AURA<span>Perception System</span></h1>
+            </div>
+            <div class="system-status" id="system-status">
+                <span class="status-indicator yellow"></span>
+                <span class="status-text">Initializing AI Models...</span>
+            </div>
+        </header>
+
+        <!-- Main Body -->
+        <main class="app-main">
+            <!-- Left Side: Camera viewport -->
+            <section class="viewport-section">
+                <div class="card glass-card camera-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-video"></i> Live Stream Feed</h2>
+                        <div class="view-controls">
+                            <span class="fps-badge" id="fps-counter">FPS: --</span>
+                            <button class="btn btn-icon" id="toggle-camera" title="Toggle Camera"><i class="fa-solid fa-camera-rotate"></i></button>
+                        </div>
+                    </div>
+                    <div class="video-container">
+                        <video id="webcam" autoplay muted playsinline></video>
+                        <canvas id="overlay"></canvas>
+                        
+                        <!-- Init/Status Loading screen -->
+                        <div class="loading-overlay" id="loading-overlay">
+                            <div class="spinner"></div>
+                            <h3 id="loading-text">Booting perception engines...</h3>
+                            <p class="model-substatus" id="model-substatus">Downloading core weights from static cache</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Side: Analytics panel -->
+            <section class="analytics-section">
+                <!-- Identified User details card -->
+                <div class="card glass-card user-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-user-shield"></i> Identified Profile</h2>
+                        <span class="badge match-badge" id="match-status">Scanning</span>
+                    </div>
+                    <div class="card-body scrollable">
+                        <!-- Profile Card Display -->
+                        <div class="profile-display" id="profile-display">
+                            <div class="empty-profile-placeholder">
+                                <i class="fa-solid fa-circle-user fa-3x"></i>
+                                <p>Show a registered face to the camera to retrieve biological profiles</p>
+                            </div>
+                            <div class="profile-content hidden">
+                                <div class="profile-avatar">
+                                    <div class="avatar-glow"></div>
+                                    <i class="fa-solid fa-user-astronaut"></i>
+                                </div>
+                                <h3 class="profile-name" id="prof-name">John Doe</h3>
+                                <p class="profile-subtitle" id="prof-title"><i class="fa-solid fa-briefcase"></i> <span id="prof-skills-short">Developer</span></p>
+                                
+                                <div class="bio-box">
+                                    <h4>AI Generated Bio</h4>
+                                    <p id="prof-bio">No bio generated yet.</p>
+                                </div>
+
+                                <div class="profile-meta-grid">
+                                    <div class="meta-item">
+                                        <span class="meta-label">Mobile</span>
+                                        <span class="meta-val" id="prof-mobile">--</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">Address</span>
+                                        <span class="meta-val" id="prof-address">--</span>
+                                    </div>
+                                </div>
+
+                                <div class="profile-tags-section">
+                                    <h4>Technical Skills</h4>
+                                    <div class="tag-group" id="prof-skills-tags">
+                                        <!-- Javascript tags -->
+                                    </div>
+                                </div>
+
+                                <div class="profile-tags-section">
+                                    <h4>Hobbies & Interests</h4>
+                                    <div class="tag-group" id="prof-hobbies-tags">
+                                        <!-- Hobbies tags -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Handheld Objects card -->
+                <div class="card glass-card objects-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-box-open"></i> Handheld Object Scan</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="objects-list-wrapper">
+                            <div class="empty-objects-placeholder" id="objects-placeholder">
+                                <i class="fa-solid fa-hand-holding fa-2x"></i>
+                                <p>Place an object in front of the camera to analyze</p>
+                            </div>
+                            <ul class="objects-list" id="detected-objects-list">
+                                <!-- Dynamic object items -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <!-- Scanner Logs -->
+        <footer class="app-logs">
+            <div class="logs-header">
+                <h3><i class="fa-solid fa-terminal"></i> Perception Scan Logs</h3>
+                <button class="btn btn-clear-logs" id="clear-logs">Clear</button>
+            </div>
+            <div class="logs-body" id="scan-logs">
+                <div class="log-entry system"><span class="log-time">[System]</span> Neural net initialized. Calibration complete.</div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Registration Modal -->
+    <div class="modal-overlay hidden" id="register-modal">
+        <div class="modal-card glass-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-user-plus text-cyan"></i> Register New Face</h3>
+                <button class="btn-close" id="close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="register-form">
+                <div class="modal-body">
+                    <div class="avatar-preview-box">
+                        <canvas id="face-crop-canvas" width="120" height="120"></canvas>
+                        <p class="preview-help">Scanning biometric fingerprint...</p>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="reg-name">Full Name <span class="required">*</span></label>
+                            <input type="text" id="reg-name" required placeholder="e.g., Jane Smith">
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-mobile">Mobile Number</label>
+                            <input type="tel" id="reg-mobile" placeholder="e.g., +1 234-567-8900">
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-address">Address / City</label>
+                            <input type="text" id="reg-address" placeholder="e.g., New York, NY">
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="reg-skills">Technical Skills <span class="help-text">(Comma separated)</span></label>
+                            <input type="text" id="reg-skills" placeholder="e.g., Python, OpenCV, Javascript, TensorFlow">
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="reg-hobbies">Hobbies & Interests <span class="help-text">(Comma separated)</span></label>
+                            <input type="text" id="reg-hobbies" placeholder="e.g., Reading, Hiking, Photography, Guitar">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-register">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-register">
+                        <span class="btn-text">Register Biometric Profile</span>
+                        <i class="fa-solid fa-fingerprint"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Core Libraries (Loaded from local static server cache) -->
+    <script src="{{ url_for('static', filename='js/tf.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/face-api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/coco-ssd.js') }}"></script>
+    <!-- App Logic -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
