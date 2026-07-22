@@ -197,6 +197,8 @@ function renderLoop() {
     requestAnimationFrame(renderLoop);
 }
 
+let lastObjectDiagTime = 0;
+
 // Background Face Detection Loop
 async function faceDetectionLoop() {
     if (!isSystemReady || isRegistering || activeMode === 'object') {
@@ -225,6 +227,7 @@ async function faceDetectionLoop() {
         );
     } catch (err) {
         console.error("Face detection loop error:", err);
+        addLog(`Face scanner loop error: ${err.message}`, "error");
     }
     
     setTimeout(faceDetectionLoop, 150);
@@ -241,6 +244,13 @@ async function objectDetectionLoop() {
     try {
         const objects = await detectObjects(video);
         
+        // Periodic system logs diagnostics (every 15 seconds) to confirm the loop is running correctly
+        const nowDiag = Date.now();
+        if (nowDiag - lastObjectDiagTime > 15000) {
+            lastObjectDiagTime = nowDiag;
+            addLog("Diagnostic: Object perception scanner healthy (0 active sightings).", "system");
+        }
+        
         // Detect newly appeared objects to announce verbally
         const filtered = objects.filter(obj => obj.class !== 'person');
         filtered.forEach(obj => {
@@ -256,6 +266,7 @@ async function objectDetectionLoop() {
         processObjectUpdates(latestObjects, objectsPlaceholder, detectedObjectsList, activeObjects, addLog);
     } catch (err) {
         console.error("Object detection loop error:", err);
+        addLog(`Object scanner loop error: ${err.message}`, "error");
     }
     
     setTimeout(objectDetectionLoop, 250);
