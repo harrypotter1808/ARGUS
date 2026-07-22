@@ -16,9 +16,9 @@ os.makedirs(MODELS_DIR, exist_ok=True)
 
 # Files to download
 JS_FILES = {
-    'tf.min.js': 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js',
+    'tf.min.js': 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js',
     'face-api.js': 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js',
-    'coco-ssd.js': 'https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@latest/dist/coco-ssd.min.js'
+    'coco-ssd.js': 'https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js'
 }
 
 MODEL_FILES = [
